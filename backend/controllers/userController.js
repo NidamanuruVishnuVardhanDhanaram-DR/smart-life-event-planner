@@ -16,17 +16,22 @@ const generateToken = (id, role = 'student') => {
 const registerUser = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
+    const cleanEmail = (email || '').trim().toLowerCase();
+
+    if (!name?.trim() || !cleanEmail || !password) {
+      return res.status(400).json({ message: 'Name, email, and password are required' });
+    }
 
     // Check if user exists
-    const userExists = await User.findOne({ email });
+    const userExists = await User.findOne({ email: cleanEmail });
     if (userExists) {
       return res.status(400).json({ message: 'User already exists' });
     }
 
     // Create user
     const user = await User.create({
-      name,
-      email,
+      name: name.trim(),
+      email: cleanEmail,
       password,
       role: role || 'student',
     });
@@ -53,11 +58,21 @@ const registerUser = async (req, res) => {
 const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
+    const cleanEmail = (email || '').trim().toLowerCase();
+
+    if (!cleanEmail || !password) {
+      return res.status(400).json({ message: 'Please enter both email and password' });
+    }
 
     // Check for user email
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne({ email: cleanEmail }).select('+password');
+    const trimmedPassword = typeof password === 'string' ? password.trim() : '';
+    const isMatch = user && (
+      (await user.matchPassword(password)) ||
+      (trimmedPassword !== password && (await user.matchPassword(trimmedPassword)))
+    );
 
-    if (user && (await user.matchPassword(password))) {
+    if (isMatch) {
       res.json({
         _id: user._id,
         name: user.name,
@@ -66,7 +81,7 @@ const loginUser = async (req, res) => {
         token: generateToken(user._id, user.role),
       });
     } else {
-      res.status(401).json({ message: 'Invalid credentials' });
+      res.status(401).json({ message: 'Invalid email or password' });
     }
   } catch (error) {
     res.status(500).json({ message: error.message });

@@ -14,6 +14,7 @@ import eventRoutes from './routes/eventRoutes.js';
 import weatherRoutes from './routes/weatherRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
 import venueBookingRoutes from './routes/venueBookingRoutes.js';
+import { ensureSeedUsers } from './utils/seedUsers.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -61,7 +62,10 @@ io.on('connection', (socket) => {
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/event-planner')
-.then(() => console.log('MongoDB connected'))
+.then(() => {
+  console.log('MongoDB connected');
+  ensureSeedUsers();
+})
 .catch(err => console.error('MongoDB connection error:', err.message));
 
 // Error-proofing: prevent unhandled errors from terminating the process

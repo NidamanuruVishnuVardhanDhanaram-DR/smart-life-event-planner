@@ -4,6 +4,11 @@ import API_URL from '../config';
 import { initializeDefaultData, INITIAL_DEMO_USERS } from '../services/dataService';
 
 const AuthContext = createContext();
+const REQUEST_TIMEOUT_MS = 10000;
+
+const isLocalOfflineToken = (value) =>
+  typeof value === 'string' &&
+  (value.startsWith('session_token_') || value.startsWith('demo_token_') || value.startsWith('token_reg_'));
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -43,10 +48,10 @@ export const AuthProvider = ({ children }) => {
   // Load user on mount - Offline Resilient (NEVER logs out on network failure or offline backend)
   useEffect(() => {
     const loadUser = async () => {
-      if (token) {
+      if (token && !isLocalOfflineToken(token)) {
         try {
           axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-          const res = await axios.get(`${API_URL}/api/users/profile`, { timeout: 3000 });
+          const res = await axios.get(`${API_URL}/api/users/profile`, { timeout: REQUEST_TIMEOUT_MS });
           if (res.data) {
             setUser(res.data);
             localStorage.setItem('user', JSON.stringify(res.data));
@@ -84,10 +89,10 @@ export const AuthProvider = ({ children }) => {
     const cleanPass = (password || '').trim();
 
     try {
-      // 1. Try real backend with 3-second timeout
+      // 1. Try real backend (10s timeout handles mobile 4G/5G cold TLS + CORS preflight)
       const res = await axios.post(`${API_URL}/api/users/login`, 
         { email: cleanEmail, password: cleanPass },
-        { timeout: 3000 }
+        { timeout: REQUEST_TIMEOUT_MS }
       );
       
       const { token: newToken, ...userData } = res.data;
@@ -179,7 +184,7 @@ export const AuthProvider = ({ children }) => {
         password,
         role,
         organization
-      }, { timeout: 3000 });
+      }, { timeout: REQUEST_TIMEOUT_MS });
 
       const { token: newToken, ...userData } = res.data;
       localStorage.setItem('token', newToken);
@@ -248,9 +253,9 @@ export const AuthProvider = ({ children }) => {
       organization: 'Smart Life Event Planner'
     };
 
-    // Try backend demo login with short timeout
+    // Try backend demo login
     try {
-      const res = await axios.post(`${API_URL}/api/users/demo-login`, { role: targetRole }, { timeout: 2000 });
+      const res = await axios.post(`${API_URL}/api/users/demo-login`, { role: targetRole }, { timeout: REQUEST_TIMEOUT_MS });
       if (res.data && res.data.token) {
         const { token: newToken, ...userData } = res.data;
         localStorage.setItem('token', newToken);
@@ -282,7 +287,7 @@ export const AuthProvider = ({ children }) => {
   // Request Account Handler (Plan Event Admin Approval workflow)
   const requestAccount = async (requestData) => {
     try {
-      const res = await axios.post(`${API_URL}/api/users/request-account`, requestData, { timeout: 2500 });
+      const res = await axios.post(`${API_URL}/api/users/request-account`, requestData, { timeout: REQUEST_TIMEOUT_MS });
       return res.data;
     } catch (error) {
       // Offline fallback: save to localStorage accountRequests queue
@@ -320,7 +325,7 @@ export const AuthProvider = ({ children }) => {
 
   const updateProfile = async (userData) => {
     try {
-      const res = await axios.put(`${API_URL}/api/users/profile`, userData, { timeout: 3000 });
+      const res = await axios.put(`${API_URL}/api/users/profile`, userData, { timeout: REQUEST_TIMEOUT_MS });
       setUser(res.data);
       localStorage.setItem('user', JSON.stringify(res.data));
       localStorage.setItem('currentUser', JSON.stringify(res.data));
