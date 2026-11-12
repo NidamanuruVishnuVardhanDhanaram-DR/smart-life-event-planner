@@ -757,6 +757,7 @@ const VenueBooking = ({ onBookingSuccess }) => {
         <PostponeModalContent 
           booking={modalState.booking}
           onSave={(date, time) => handlePostponeSave(date, time)}
+          onClose={() => setModalState({isOpen:false,type:null,booking:null})}
           minDateTime={minDateTime}
         />
       </ActionModal>
@@ -770,6 +771,7 @@ const VenueBooking = ({ onBookingSuccess }) => {
         <RebookModalContent 
           booking={modalState.booking}
           onSave={(date, time) => handleRebookSave(date, time)}
+          onClose={() => setModalState({isOpen:false,type:null,booking:null})}
           minDateTime={minDateTime}
         />
       </ActionModal>
@@ -785,7 +787,7 @@ const VenueBooking = ({ onBookingSuccess }) => {
 };
 
 // Postpone Modal Component
-const PostponeModalContent = ({ booking, onSave, minDateTime }) => {
+const PostponeModalContent = ({ booking, onSave, onClose, minDateTime }) => {
   const [newDate, setNewDate] = useState(booking?.eventDate || '');
   const [newTime, setNewTime] = useState(booking?.eventTime || '');
 
