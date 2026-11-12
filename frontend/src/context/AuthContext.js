@@ -199,6 +199,19 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true, token: newToken, user: userData };
     } catch (error) {
+      const isNetworkOrOffline =
+        error.code === 'ERR_NETWORK' ||
+        error.code === 'ECONNABORTED' ||
+        !error.response ||
+        error.response.status >= 500;
+
+      if (!isNetworkOrOffline) {
+        return {
+          success: false,
+          message: error.response?.data?.message || 'Registration failed. Please check your details.'
+        };
+      }
+
       // Offline fallback: save account locally and sign in
       const fakeToken = `token_reg_${Date.now()}`;
       const userData = {

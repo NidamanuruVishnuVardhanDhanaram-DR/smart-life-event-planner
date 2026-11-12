@@ -706,12 +706,12 @@ const Login = () => {
               to="/register"
               className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-purple-300 hover:from-white hover:to-white transition-all duration-300 underline decoration-2 underline-offset-4"
             >
-              Raise an Account Request →
+              Create Account / Request Access →
             </Link>
           </p>
           
           <p className="text-white/50 text-xs max-w-sm mx-auto">
-            New accounts are authorized and provisioned by the Plan Event Organizer. Your login ID and password will be emailed to you.
+            Create an instant account with your own password to sign in across desktop & mobile, or raise a role approval request.
           </p>
           <p className="text-white/50 text-xs">
             By signing in, you agree to our{' '}

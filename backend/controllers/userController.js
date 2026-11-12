@@ -15,17 +15,21 @@ const generateToken = (id, role = 'student') => {
 // @access  Public
 const registerUser = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, organization } = req.body;
     const cleanEmail = (email || '').trim().toLowerCase();
 
     if (!name?.trim() || !cleanEmail || !password) {
       return res.status(400).json({ message: 'Name, email, and password are required' });
     }
 
+    if (String(password).length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+
     // Check if user exists
     const userExists = await User.findOne({ email: cleanEmail });
     if (userExists) {
-      return res.status(400).json({ message: 'User already exists' });
+      return res.status(400).json({ message: 'An account with this email already exists. Please sign in.' });
     }
 
     // Create user
@@ -34,7 +38,14 @@ const registerUser = async (req, res) => {
       email: cleanEmail,
       password,
       role: role || 'student',
+      organization: organization || '',
     });
+
+    // Mark any pending AccountRequest for the same email as approved
+    await AccountRequest.updateMany(
+      { email: cleanEmail, status: 'pending' },
+      { status: 'approved', reviewedAt: new Date(), adminNotes: 'Self-registered directly by user' }
+    );
 
     if (user) {
       res.status(201).json({
@@ -42,6 +53,7 @@ const registerUser = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        organization: user.organization || '',
         token: generateToken(user._id, user.role),
       });
     } else {
@@ -78,6 +90,7 @@ const loginUser = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        organization: user.organization || '',
         token: generateToken(user._id, user.role),
       });
     } else {

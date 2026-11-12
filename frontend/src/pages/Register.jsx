@@ -3,16 +3,19 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
   User, Mail, Phone, Building, AlertCircle, CheckCircle, 
-  ArrowRight, Loader2, Sparkles, Shield, Send, Check
+  ArrowRight, Loader2, Sparkles, Shield, Send, Check, Lock, Eye, EyeOff, UserPlus
 } from 'lucide-react';
 
 const Register = () => {
   const navigate = useNavigate();
-  const { demoLogin, requestAccount } = useAuth();
+  const { demoLogin, requestAccount, register } = useAuth();
 
+  const [mode, setMode] = useState('register'); // 'register' | 'request'
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    password: '',
     phone: '',
     organization: '',
     requestedRole: 'student',
@@ -56,10 +59,31 @@ const Register = () => {
       return;
     }
 
+    if (mode === 'register' && (!formData.password || formData.password.length < 6)) {
+      setError('Please enter a password of at least 6 characters');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
     try {
+      if (mode === 'register' && register) {
+        const res = await register(
+          formData.name.trim(),
+          formData.email.trim().toLowerCase(),
+          formData.password,
+          formData.requestedRole,
+          formData.organization
+        );
+        if (res && res.success) {
+          navigate('/dashboard', { replace: true });
+          return;
+        }
+        setError(res?.message || 'Failed to create account. Please try again.');
+        return;
+      }
+
       let res;
       if (requestAccount) {
         res = await requestAccount(formData);
@@ -100,16 +124,44 @@ const Register = () => {
           <div className="absolute top-0 left-0 right-0 h-36 bg-gradient-to-b from-white/[0.12] to-transparent pointer-events-none rounded-t-3xl"></div>
           
           {/* Header */}
-          <div className="text-center mb-8">
+          <div className="text-center mb-6">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-bold uppercase tracking-wider mb-3">
-              <Shield size={14} /> Plan Event Authorization System
+              <Shield size={14} /> Smart Life Account Access
             </div>
             <h1 className="text-3xl md:text-4xl font-extrabold text-white">
-              Raise an Account Request
+              {mode === 'register' ? 'Create Your Account' : 'Raise an Account Request'}
             </h1>
             <p className="text-gray-400 text-sm md:text-base mt-2 max-w-lg mx-auto">
-              New accounts are created and provisioned exclusively by the <strong className="text-purple-400 font-semibold">Plan Event Organizer</strong>. Submit your details below to receive your Login ID and password via email.
+              {mode === 'register'
+                ? 'Sign up directly to sync your account across desktop and mobile immediately.'
+                : <>Submit a request for the <strong className="text-purple-400 font-semibold">Plan Event Organizer</strong> to approve and provision your credentials.</>}
             </p>
+
+            {/* Mode Switcher */}
+            <div className="inline-flex p-1 mt-5 bg-gray-800/80 border border-gray-700 rounded-xl">
+              <button
+                type="button"
+                onClick={() => { setMode('register'); setError(''); setSubmitted(false); }}
+                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  mode === 'register'
+                    ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <UserPlus size={14} /> Create Account Now
+              </button>
+              <button
+                type="button"
+                onClick={() => { setMode('request'); setError(''); setSubmitted(false); }}
+                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  mode === 'request'
+                    ? 'bg-gradient-to-r from-purple-500 to-emerald-500 text-white shadow'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <Send size={14} /> Request Approval
+              </button>
+            </div>
           </div>
 
           {/* Quick Demo Access Bar */}
@@ -236,7 +288,7 @@ const Register = () => {
 
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-gray-300 mb-2">
-                    Email Address * (Credentials will be sent here)
+                    Email Address *
                   </label>
                   <div className="relative">
                     <Mail size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
@@ -252,6 +304,35 @@ const Register = () => {
                   </div>
                 </div>
               </div>
+
+              {mode === 'register' && (
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-gray-300 mb-2">
+                    Password * (min 6 characters)
+                  </label>
+                  <div className="relative">
+                    <Lock size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      name="password"
+                      required
+                      minLength={6}
+                      placeholder="Create a password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      className="w-full pl-10 pr-11 py-3 bg-gray-800/80 border border-gray-700 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 rounded-xl text-white placeholder-gray-500 text-sm outline-none transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(prev => !prev)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Phone & Organization */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -361,12 +442,12 @@ const Register = () => {
                 {loading ? (
                   <>
                     <Loader2 size={18} className="animate-spin" />
-                    <span>Submitting Request to MongoDB...</span>
+                    <span>{mode === 'register' ? 'Creating Account in MongoDB...' : 'Submitting Request to MongoDB...'}</span>
                   </>
                 ) : (
                   <>
-                    <Send size={18} />
-                    <span>Submit Account Request to Plan Event Organizer</span>
+                    {mode === 'register' ? <UserPlus size={18} /> : <Send size={18} />}
+                    <span>{mode === 'register' ? 'Create Account & Sign In' : 'Submit Account Request to Plan Event Organizer'}</span>
                   </>
                 )}
               </button>
