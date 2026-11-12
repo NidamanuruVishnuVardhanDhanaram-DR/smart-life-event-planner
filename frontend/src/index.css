@@ -1,0 +1,506 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Import Modern Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+/* ------------------ BASE LAYER (Glossy Canvas) ------------------ */
+@layer base {
+  html {
+    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    scroll-behavior: smooth;
+    color-scheme: dark;
+  }
+
+  body {
+    @apply text-gray-100 bg-[#080c18];
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(67, 56, 202, 0.35) 0px, transparent 55%),
+      radial-gradient(at 100% 0%, rgba(14, 165, 233, 0.28) 0px, transparent 50%),
+      radial-gradient(at 50% 50%, rgba(168, 85, 247, 0.2) 0px, transparent 65%),
+      radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.22) 0px, transparent 55%),
+      radial-gradient(at 0% 100%, rgba(236, 72, 153, 0.25) 0px, transparent 60%);
+    background-attachment: fixed;
+  }
+
+  /* Prismatic Ambient Floating Light Spheres underneath Glass */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(circle at 18% 22%, rgba(99, 102, 241, 0.22) 0%, transparent 45%),
+      radial-gradient(circle at 82% 78%, rgba(217, 70, 239, 0.2) 0%, transparent 48%),
+      radial-gradient(circle at 48% 38%, rgba(6, 182, 212, 0.18) 0%, transparent 42%),
+      radial-gradient(circle at 75% 15%, rgba(52, 211, 153, 0.16) 0%, transparent 40%);
+    animation: floatSlow 18s ease-in-out infinite alternate;
+    pointer-events: none;
+    z-index: -2;
+  }
+
+  /* Fine Specular Refraction Layer */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.05) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  /* High-Gloss Scrollbars */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: rgba(8, 12, 24, 0.85);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, rgba(99, 102, 241, 0.8) 40%, rgba(168, 85, 247, 0.8) 100%);
+    border-radius: 9999px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.6) 0%, rgba(99, 102, 241, 1) 40%, rgba(168, 85, 247, 1) 100%);
+  }
+
+  ::selection {
+    background-color: rgba(168, 85, 247, 0.45);
+    color: #ffffff;
+  }
+}
+
+/* ------------------ GLOSSY COMPONENTS LAYER ------------------ */
+@layer components {
+  /* High-Gloss Acrylic Panel */
+  .gloss-panel, .glass-panel {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0.02) 60%, rgba(255, 255, 255, 0.04) 100%), rgba(13, 20, 38, 0.75);
+    backdrop-filter: blur(22px) saturate(190%);
+    -webkit-backdrop-filter: blur(22px) saturate(190%);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-top: 1px solid rgba(255, 255, 255, 0.35);
+    border-left: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow: 
+      inset 0 1px 1px 0 rgba(255, 255, 255, 0.35),
+      inset 0 -1px 1px 0 rgba(0, 0, 0, 0.3),
+      0 20px 45px -15px rgba(0, 0, 0, 0.65),
+      0 0 35px -5px rgba(99, 102, 241, 0.15);
+  }
+
+  /* Elevated High-Gloss Surface (Modals, Headers, Overlays) */
+  .gloss-panel-elevated, .glass-panel-elevated {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.03) 50%, rgba(255, 255, 255, 0.06) 100%), rgba(17, 24, 46, 0.82);
+    backdrop-filter: blur(26px) saturate(200%);
+    -webkit-backdrop-filter: blur(26px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-top: 1px solid rgba(255, 255, 255, 0.45);
+    border-left: 1px solid rgba(255, 255, 255, 0.28);
+    box-shadow: 
+      inset 0 1px 2px 0 rgba(255, 255, 255, 0.45),
+      0 25px 60px -15px rgba(0, 0, 0, 0.75),
+      0 0 45px -5px rgba(168, 85, 247, 0.2);
+  }
+
+  /* Glossy Cards */
+  .gloss-card, .card {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.02) 60%, rgba(255, 255, 255, 0.05) 100%), rgba(15, 23, 42, 0.72);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-radius: 1.25rem;
+    padding: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    border-top: 1px solid rgba(255, 255, 255, 0.32);
+    border-left: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 
+      inset 0 1px 1px 0 rgba(255, 255, 255, 0.28),
+      0 16px 36px -10px rgba(0, 0, 0, 0.6);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Specular Light Curve overlay on cards */
+  .gloss-card::before, .card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 38%;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.0) 100%);
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Hover Lift with Luminous Glint */
+  .gloss-card:hover, .card:hover, .glass-card-hover:hover {
+    transform: translateY(-4px);
+    border-color: rgba(255, 255, 255, 0.26);
+    border-top-color: rgba(255, 255, 255, 0.6);
+    border-left-color: rgba(255, 255, 255, 0.35);
+    box-shadow: 
+      inset 0 1px 2px 0 rgba(255, 255, 255, 0.45),
+      0 26px 50px -12px rgba(0, 0, 0, 0.72),
+      0 0 35px -5px rgba(99, 102, 241, 0.28);
+  }
+
+  /* Glossy Candy Pill Buttons */
+  .gloss-btn, .btn-primary {
+    @apply relative overflow-hidden font-bold py-3 px-6 rounded-xl transition-all duration-300 text-white flex items-center justify-center gap-2;
+    background: 
+      linear-gradient(180deg, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0.06) 50%, rgba(0, 0, 0, 0.12) 51%, rgba(255, 255, 255, 0.12) 100%),
+      linear-gradient(135deg, #2563eb 0%, #7c3aed 50%, #db2777 100%);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-top: 1px solid rgba(255, 255, 255, 0.65);
+    box-shadow: 
+      inset 0 1px 1px 0 rgba(255, 255, 255, 0.6),
+      0 8px 24px -4px rgba(124, 58, 237, 0.5),
+      0 0 20px -2px rgba(37, 99, 235, 0.3);
+  }
+
+  .gloss-btn:hover, .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 
+      inset 0 1px 2px 0 rgba(255, 255, 255, 0.8),
+      0 12px 30px -4px rgba(124, 58, 237, 0.65),
+      0 0 30px 2px rgba(219, 39, 119, 0.4);
+    border-top-color: #ffffff;
+  }
+  .gloss-btn:active, .btn-primary:active {
+    transform: translateY(0);
+    box-shadow: 
+      inset 0 2px 3px 0 rgba(0, 0, 0, 0.4),
+      0 4px 12px -2px rgba(124, 58, 237, 0.4);
+  }
+
+  /* Glossy Outline Button */
+  .btn-outline, .gloss-btn-outline {
+    @apply relative overflow-hidden font-semibold py-2.5 px-5 rounded-xl transition-all duration-300 text-gray-100 flex items-center justify-center gap-2;
+    background: 
+      linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.02) 100%),
+      rgba(30, 41, 59, 0.6);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-top: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.3),
+      0 8px 20px -6px rgba(0, 0, 0, 0.5);
+  }
+  .btn-outline:hover, .gloss-btn-outline:hover {
+    transform: translateY(-2px);
+    background: 
+      linear-gradient(180deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.05) 100%),
+      rgba(51, 65, 85, 0.7);
+    border-color: rgba(255, 255, 255, 0.3);
+    border-top-color: rgba(255, 255, 255, 0.65);
+    box-shadow: 
+      inset 0 1px 1px 0 rgba(255, 255, 255, 0.5),
+      0 12px 28px -6px rgba(0, 0, 0, 0.6);
+  }
+
+  /* Role-Themed Glossy Buttons */
+  .gloss-btn-student {
+    background: 
+      linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.05) 50%, rgba(0, 0, 0, 0.15) 51%, rgba(255, 255, 255, 0.1) 100%),
+      linear-gradient(135deg, #0284c7 0%, #06b6d4 100%);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-top: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.6), 0 8px 20px -4px rgba(6, 182, 212, 0.5);
+  }
+  .gloss-btn-student:hover {
+    transform: translateY(-2px);
+    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.8), 0 12px 28px -4px rgba(6, 182, 212, 0.7);
+  }
+
+  .gloss-btn-planner {
+    background: 
+      linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.05) 50%, rgba(0, 0, 0, 0.15) 51%, rgba(255, 255, 255, 0.1) 100%),
+      linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-top: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.6), 0 8px 20px -4px rgba(168, 85, 247, 0.5);
+  }
+  .gloss-btn-planner:hover {
+    transform: translateY(-2px);
+    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.8), 0 12px 28px -4px rgba(168, 85, 247, 0.7);
+  }
+
+  .gloss-btn-pro {
+    background: 
+      linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.05) 50%, rgba(0, 0, 0, 0.15) 51%, rgba(255, 255, 255, 0.1) 100%),
+      linear-gradient(135deg, #059669 0%, #10b981 100%);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-top: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.6), 0 8px 20px -4px rgba(16, 185, 129, 0.5);
+  }
+  .gloss-btn-pro:hover {
+    transform: translateY(-2px);
+    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.8), 0 12px 28px -4px rgba(16, 185, 129, 0.7);
+  }
+
+  /* Glossy Form Inputs */
+  .gloss-input, .input-field {
+    @apply w-full px-4 py-3 rounded-xl text-white placeholder-gray-400 text-sm outline-none transition-all duration-300;
+    background: 
+      linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%),
+      rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-top: 1px solid rgba(255, 255, 255, 0.28);
+    box-shadow: 
+      inset 0 2px 4px rgba(0, 0, 0, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  }
+
+  .gloss-input:focus, .input-field:focus {
+    border-color: rgba(168, 85, 247, 0.6);
+    border-top-color: rgba(255, 255, 255, 0.7);
+    box-shadow: 
+      inset 0 1px 1px rgba(255, 255, 255, 0.3),
+      0 0 25px rgba(168, 85, 247, 0.4),
+      0 0 5px rgba(255, 255, 255, 0.5);
+    background: rgba(20, 28, 52, 0.8);
+  }
+
+  .form-label {
+    @apply block text-xs font-bold text-gray-200 uppercase tracking-wider mb-2 flex items-center gap-1.5;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Glossy Badges */
+  .gloss-badge-student, .badge-student {
+    @apply inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider text-cyan-300;
+    background: 
+      linear-gradient(180deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.02) 100%),
+      rgba(6, 182, 212, 0.16);
+    border: 1px solid rgba(6, 182, 212, 0.4);
+    border-top: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 
+      inset 0 1px 0 rgba(255, 255, 255, 0.4),
+      0 0 18px rgba(6, 182, 212, 0.35);
+  }
+
+  .gloss-badge-planner, .badge-planner {
+    @apply inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider text-purple-300;
+    background: 
+      linear-gradient(180deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.02) 100%),
+      rgba(168, 85, 247, 0.16);
+    border: 1px solid rgba(168, 85, 247, 0.4);
+    border-top: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 
+      inset 0 1px 0 rgba(255, 255, 255, 0.4),
+      0 0 18px rgba(168, 85, 247, 0.35);
+  }
+
+  .gloss-badge-pro, .badge-pro {
+    @apply inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider text-emerald-300;
+    background: 
+      linear-gradient(180deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.02) 100%),
+      rgba(16, 185, 129, 0.16);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    border-top: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 
+      inset 0 1px 0 rgba(255, 255, 255, 0.4),
+      0 0 18px rgba(16, 185, 129, 0.35);
+  }
+
+  /* Glossy Text Gradients with Specular Highlight */
+  .text-gradient {
+    background: linear-gradient(135deg, #ffffff 0%, #93c5fd 30%, #c084fc 70%, #34d399 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 2px 8px rgba(168, 85, 247, 0.25));
+  }
+
+  .text-gradient-student {
+    background: linear-gradient(135deg, #ffffff 0%, #38bdf8 50%, #3b82f6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .text-gradient-planner {
+    background: linear-gradient(135deg, #ffffff 0%, #c084fc 50%, #8b5cf6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .text-gradient-pro {
+    background: linear-gradient(135deg, #ffffff 0%, #34d399 50%, #10b981 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}
+
+/* ------------------ UTILITIES LAYER ------------------ */
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .smooth-transition {
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Specular Highlight Borders */
+  .specular-border {
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-top: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+}
+
+/* ------------------ KEYFRAME ANIMATIONS ------------------ */
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  0% {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(0.5deg);
+  }
+}
+
+@keyframes floatSlow {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateY(-18px) scale(1.03);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 35px rgba(168, 85, 247, 0.55), 0 0 15px rgba(255, 255, 255, 0.3);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes glossRay {
+  0% {
+    transform: translateX(-150%) skewX(-25deg);
+  }
+  100% {
+    transform: translateX(250%) skewX(-25deg);
+  }
+}
+
+/* Animation Classes */
+.animate-fadeIn {
+  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slideUp {
+  animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slideDown {
+  animation: slideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-floatSlow {
+  animation: floatSlow 12s ease-in-out infinite alternate;
+}
+
+.animate-pulseGlow {
+  animation: pulseGlow 3s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 2.5s infinite;
+}
+
+/* Responsive Mobile & Desktop Utilities */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@media (max-width: 640px) {
+  body {
+    overflow-x: hidden;
+    touch-action: manipulation;
+  }
+}
