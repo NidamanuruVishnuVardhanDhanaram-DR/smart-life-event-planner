@@ -30,6 +30,7 @@ const AccountAllocation = ({ events = [], onAllocationUpdated }) => {
     role: 'student',
     password: '',
     organization: '',
+    updateIfExists: false,
   });
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
 
@@ -42,6 +43,11 @@ const AccountAllocation = ({ events = [], onAllocationUpdated }) => {
   // Role Allocation Modal
   const [modalUser, setModalUser] = useState(null);
   const [newRole, setNewRole] = useState('student');
+
+  // Password Reset Modal
+  const [resetModalUser, setResetModalUser] = useState(null);
+  const [resetPasswordInput, setResetPasswordInput] = useState('');
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   // Credentials Dispatched Modal
   const [dispatchedCredentials, setDispatchedCredentials] = useState(null);
@@ -176,7 +182,12 @@ const AccountAllocation = ({ events = [], onAllocationUpdated }) => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      showToast(`✅ Created account & emailed credentials to ${createForm.email}!`, 'success');
+      showToast(
+        res.data?.updated
+          ? `✅ Updated credentials for ${createForm.email}!`
+          : `✅ Created account & emailed credentials to ${createForm.email}!`,
+        'success'
+      );
 
       if (res.data?.credentials) {
         setDispatchedCredentials({
@@ -194,14 +205,56 @@ const AccountAllocation = ({ events = [], onAllocationUpdated }) => {
         role: 'student',
         password: '',
         organization: '',
+        updateIfExists: false,
       });
 
       loadAllAllocationData();
       if (onAllocationUpdated) onAllocationUpdated();
     } catch (err) {
+      if (err.response?.data?.code === 'USER_EXISTS') {
+        setCreateForm(prev => ({ ...prev, updateIfExists: true }));
+      }
       showToast(err.response?.data?.message || 'Failed to create account', 'error');
     } finally {
       setIsCreatingAccount(false);
+    }
+  };
+
+  // Handle Organizer/Admin Password Reset for an existing user
+  const handleResetUserPassword = async (e) => {
+    e.preventDefault();
+    if (!resetModalUser) return;
+    if (resetPasswordInput.trim() && resetPasswordInput.trim().length < 6) {
+      showToast('Password must be at least 6 characters', 'warning');
+      return;
+    }
+
+    setIsResettingPassword(true);
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      const res = await axios.put(
+        `${API_URL}/api/users/${resetModalUser._id}/password`,
+        { password: resetPasswordInput.trim() },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      showToast(`✅ Password updated for ${resetModalUser.email}`, 'success');
+      if (res.data?.credentials) {
+        setDispatchedCredentials({
+          name: resetModalUser.name,
+          email: res.data.credentials.email,
+          role: resetModalUser.role,
+          password: res.data.credentials.password,
+          emailResult: res.data.emailResult,
+        });
+      }
+      setResetModalUser(null);
+      setResetPasswordInput('');
+      loadAllAllocationData();
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to reset user password', 'error');
+    } finally {
+      setIsResettingPassword(false);
     }
   };
 
@@ -641,6 +694,16 @@ const AccountAllocation = ({ events = [], onAllocationUpdated }) => {
               </div>
             </div>
 
+            <label className="flex items-center gap-2.5 text-xs text-gray-300 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={!!createForm.updateIfExists}
+                onChange={(e) => setCreateForm(prev => ({ ...prev, updateIfExists: e.target.checked }))}
+                className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-purple-500 focus:ring-purple-500"
+              />
+              <span>Update existing user&apos;s password &amp; role if email is already registered</span>
+            </label>
+
             <button
               type="submit"
               disabled={isCreatingAccount}
@@ -733,15 +796,26 @@ const AccountAllocation = ({ events = [], onAllocationUpdated }) => {
                       </span>
                     </td>
                     <td className="py-3.5 px-3 text-right">
-                      <button
-                        onClick={() => {
-                          setModalUser(u);
-                          setNewRole(u.role || 'student');
-                        }}
-                        className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-purple-300 hover:text-white rounded-lg border border-purple-500/30 text-xs font-semibold transition-all inline-flex items-center gap-1.5"
-                      >
-                        <Award size={14} /> Reallocate Role
-                      </button>
+                      <div className="inline-flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => {
+                            setResetModalUser(u);
+                            setResetPasswordInput('');
+                          }}
+                          className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-amber-300 hover:text-white rounded-lg border border-amber-500/30 text-xs font-semibold transition-all inline-flex items-center gap-1.5"
+                        >
+                          <Key size={14} /> Reset Password
+                        </button>
+                        <button
+                          onClick={() => {
+                            setModalUser(u);
+                            setNewRole(u.role || 'student');
+                          }}
+                          className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-purple-300 hover:text-white rounded-lg border border-purple-500/30 text-xs font-semibold transition-all inline-flex items-center gap-1.5"
+                        >
+                          <Award size={14} /> Reallocate Role
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -914,6 +988,56 @@ const AccountAllocation = ({ events = [], onAllocationUpdated }) => {
                 Done
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Password Reset Modal */}
+      {resetModalUser && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 border border-gray-700 rounded-3xl p-6 max-w-md w-full shadow-2xl animate-fadeIn">
+            <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+              <Key className="text-amber-400" size={20} />
+              Set or Reset Password
+            </h3>
+            <p className="text-gray-300 text-sm mb-4">
+              Update login password for <span className="text-purple-400 font-semibold">{resetModalUser.name}</span> ({resetModalUser.email}):
+            </p>
+
+            <form onSubmit={handleResetUserPassword} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-300 mb-2">
+                  New Password (min 6 chars, leave blank to auto-generate)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Enter new password or leave blank"
+                  value={resetPasswordInput}
+                  onChange={(e) => setResetPasswordInput(e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-800/80 border border-gray-700 focus:border-amber-500 rounded-xl text-white text-sm outline-none font-mono"
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="submit"
+                  disabled={isResettingPassword}
+                  className="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-gray-950 rounded-xl font-bold text-sm transition-all shadow-lg disabled:opacity-50"
+                >
+                  {isResettingPassword ? 'Updating...' : 'Save New Password'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setResetModalUser(null);
+                    setResetPasswordInput('');
+                  }}
+                  className="flex-1 py-3 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded-xl font-semibold text-sm transition-all border border-gray-700"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

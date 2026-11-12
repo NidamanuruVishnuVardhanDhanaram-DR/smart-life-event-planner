@@ -260,9 +260,21 @@ const Register = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               
               {error && (
-                <div className="p-4 bg-red-500/15 border border-red-500/30 rounded-2xl flex items-center gap-3 text-red-300 text-sm">
-                  <AlertCircle size={18} className="flex-shrink-0" />
-                  <span>{error}</span>
+                <div className="p-4 bg-red-500/15 border border-red-500/30 rounded-2xl space-y-2 text-red-300 text-sm">
+                  <div className="flex items-center gap-3">
+                    <AlertCircle size={18} className="flex-shrink-0" />
+                    <span>{error}</span>
+                  </div>
+                  {error.toLowerCase().includes('already exists') && (
+                    <div className="flex flex-wrap gap-3 pl-7 text-xs">
+                      <Link to="/login" className="text-blue-300 hover:text-white underline font-semibold">
+                        Sign In Instead
+                      </Link>
+                      <Link to="/forgot-password" className="text-purple-300 hover:text-white underline font-semibold">
+                        Set / Reset Password
+                      </Link>
+                    </div>
+                  )}
                 </div>
               )}
 

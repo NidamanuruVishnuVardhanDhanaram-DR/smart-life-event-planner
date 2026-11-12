@@ -29,7 +29,10 @@ const registerUser = async (req, res) => {
     // Check if user exists
     const userExists = await User.findOne({ email: cleanEmail });
     if (userExists) {
-      return res.status(400).json({ message: 'An account with this email already exists. Please sign in.' });
+      return res.status(400).json({
+        code: 'USER_EXISTS',
+        message: 'An account with this email already exists. Please sign in or reset your password.',
+      });
     }
 
     // Create user
@@ -393,12 +396,12 @@ const rejectAccountRequest = async (req, res) => {
   }
 };
 
-// @desc    Create direct account & mail credentials (Plan Event / Admin)
+// @desc    Create direct account or update existing credentials (Plan Event / Admin)
 // @route   POST /api/users/create-account
 // @access  Private (Plan Event / Admin)
 const createDirectAccount = async (req, res) => {
   try {
-    const { name, email, role, password, organization } = req.body;
+    const { name, email, role, password, organization, updateIfExists } = req.body;
 
     if (!name || !email) {
       return res.status(400).json({ message: 'Name and email are required' });
@@ -406,36 +409,60 @@ const createDirectAccount = async (req, res) => {
 
     const cleanEmail = email.trim().toLowerCase();
     const assignedRole = role || 'student';
-    const tempPassword = password || `Pass#${Math.floor(100000 + Math.random() * 900000)}`;
+    const trimmedPassword = typeof password === 'string' ? password.trim() : '';
+    if (trimmedPassword && trimmedPassword.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+    const tempPassword = trimmedPassword || `Pass#${Math.floor(100000 + Math.random() * 900000)}`;
 
     let user = await User.findOne({ email: cleanEmail });
+    let wasUpdated = false;
     if (user) {
-      return res.status(400).json({ message: 'A user with this email already exists in MongoDB' });
+      if (!updateIfExists) {
+        return res.status(400).json({
+          code: 'USER_EXISTS',
+          message: 'A user with this email already exists in MongoDB. Enable "Update existing account" or use Reset Password.',
+        });
+      }
+      user.name = name.trim();
+      user.password = tempPassword;
+      user.role = assignedRole;
+      user.organization = organization || user.organization || '';
+      user.allocatedBy = req.user.id;
+      user.allocatedRole = assignedRole;
+      user.isVerified = true;
+      await user.save();
+      wasUpdated = true;
+    } else {
+      user = await User.create({
+        name: name.trim(),
+        email: cleanEmail,
+        password: tempPassword,
+        role: assignedRole,
+        organization: organization || '',
+        allocatedBy: req.user.id,
+        allocatedRole: assignedRole,
+        isVerified: true,
+      });
     }
 
-    user = await User.create({
-      name: name.trim(),
-      email: cleanEmail,
-      password: tempPassword,
-      role: assignedRole,
-      allocatedBy: req.user.id,
-      allocatedRole: assignedRole,
-      isVerified: true,
-    });
-
-    // Also record in AccountRequest as approved
-    await AccountRequest.create({
-      name: name.trim(),
-      email: cleanEmail,
-      requestedRole: assignedRole,
-      organization: organization || '',
-      purpose: 'Directly provisioned by Plan Event organizer',
-      status: 'approved',
-      reviewedBy: req.user.id,
-      reviewedAt: new Date(),
-      generatedPassword: tempPassword,
-      emailSent: true,
-    });
+    // Also record or update AccountRequest as approved
+    await AccountRequest.findOneAndUpdate(
+      { email: cleanEmail },
+      {
+        name: name.trim(),
+        email: cleanEmail,
+        requestedRole: assignedRole,
+        organization: organization || '',
+        purpose: wasUpdated ? 'Credentials updated by Plan Event organizer' : 'Directly provisioned by Plan Event organizer',
+        status: 'approved',
+        reviewedBy: req.user.id,
+        reviewedAt: new Date(),
+        generatedPassword: tempPassword,
+        emailSent: true,
+      },
+      { upsert: true, new: true }
+    );
 
     const emailResult = await sendAccountCredentialsEmail(
       cleanEmail,
@@ -444,9 +471,12 @@ const createDirectAccount = async (req, res) => {
       assignedRole
     );
 
-    res.status(201).json({
+    res.status(wasUpdated ? 200 : 201).json({
       success: true,
-      message: `Account created for ${name} and login ID & password emailed to ${cleanEmail}!`,
+      updated: wasUpdated,
+      message: wasUpdated
+        ? `Updated credentials for ${cleanEmail}! User can sign in immediately.`
+        : `Account created for ${name} and login ID & password emailed to ${cleanEmail}!`,
       user: {
         _id: user._id,
         name: user.name,
@@ -458,6 +488,126 @@ const createDirectAccount = async (req, res) => {
         password: tempPassword,
       },
       emailResult,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Reset / Set password for an existing user (Plan Event / Admin)
+// @route   PUT /api/users/:id/password
+// @access  Private (Plan Event / Admin)
+const resetUserPassword = async (req, res) => {
+  try {
+    const rawPassword = typeof req.body.password === 'string' ? req.body.password.trim() : '';
+    if (rawPassword && rawPassword.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.role === 'admin' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Only a master administrator can reset an admin password' });
+    }
+
+    const nextPassword = rawPassword || `Pass#${Math.floor(100000 + Math.random() * 900000)}`;
+    user.password = nextPassword;
+    user.allocatedBy = req.user.id;
+    user.isVerified = true;
+    await user.save();
+
+    await AccountRequest.updateMany(
+      { email: user.email },
+      {
+        status: 'approved',
+        reviewedBy: req.user.id,
+        reviewedAt: new Date(),
+        generatedPassword: nextPassword,
+      }
+    );
+
+    const emailResult = await sendAccountCredentialsEmail(
+      user.email,
+      user.name,
+      { email: user.email, password: nextPassword },
+      user.role
+    );
+
+    res.json({
+      success: true,
+      message: `Password updated for ${user.email}. Ready for immediate login.`,
+      credentials: {
+        email: user.email,
+        password: nextPassword,
+      },
+      emailResult,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const normalizeNameForCheck = (value) =>
+  String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
+
+// @desc    Self-service password reset for registered / approved users
+// @route   POST /api/users/forgot-password
+// @access  Public
+const forgotPasswordReset = async (req, res) => {
+  try {
+    const { email, name, newPassword } = req.body;
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const trimmedPassword = typeof newPassword === 'string' ? newPassword.trim() : '';
+
+    if (!cleanEmail || !name?.trim() || !trimmedPassword) {
+      return res.status(400).json({ message: 'Email, full name, and new password are required' });
+    }
+
+    if (trimmedPassword.length < 6) {
+      return res.status(400).json({ message: 'New password must be at least 6 characters' });
+    }
+
+    if (cleanEmail.endsWith('@eventplanner.com')) {
+      return res.status(403).json({
+        message: 'Built-in demo and admin accounts cannot be changed via self-service.',
+      });
+    }
+
+    const user = await User.findOne({ email: cleanEmail });
+    if (!user) {
+      return res.status(404).json({
+        message: 'No account found with this email. Please create an account first.',
+      });
+    }
+
+    if (user.role === 'admin') {
+      return res.status(403).json({
+        message: 'Administrator accounts must be reset by another administrator.',
+      });
+    }
+
+    if (normalizeNameForCheck(user.name) !== normalizeNameForCheck(name)) {
+      return res.status(401).json({
+        message: 'The full name provided does not match the registered name on this account.',
+      });
+    }
+
+    user.password = trimmedPassword;
+    user.isVerified = true;
+    await user.save();
+
+    await AccountRequest.updateMany(
+      { email: cleanEmail },
+      { status: 'approved', generatedPassword: '', adminNotes: 'Password set by user via Forgot Password' }
+    );
+
+    res.json({
+      success: true,
+      message: 'Password updated successfully! You can now sign in on mobile or desktop.',
+      email: user.email,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -565,6 +715,8 @@ export {
   approveAccountRequest,
   rejectAccountRequest,
   createDirectAccount,
+  resetUserPassword,
+  forgotPasswordReset,
   demoLogin,
   getMongoStatus,
 };

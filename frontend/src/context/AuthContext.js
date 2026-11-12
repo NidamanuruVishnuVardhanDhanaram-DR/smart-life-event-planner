@@ -325,6 +325,30 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const resetPassword = async (email, name, newPassword) => {
+    const cleanEmail = (email || '').trim().toLowerCase();
+    try {
+      const res = await axios.post(
+        `${API_URL}/api/users/forgot-password`,
+        {
+          email: cleanEmail,
+          name: (name || '').trim(),
+          newPassword,
+        },
+        { timeout: REQUEST_TIMEOUT_MS }
+      );
+      return {
+        success: true,
+        message: res.data?.message || 'Password updated successfully! You can now sign in.',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to reset password. Please check your details and try again.',
+      };
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('authToken');
@@ -373,6 +397,7 @@ export const AuthProvider = ({ children }) => {
     register,
     demoLogin,
     requestAccount,
+    resetPassword,
     logout,
     updateProfile,
     switchActiveRole,

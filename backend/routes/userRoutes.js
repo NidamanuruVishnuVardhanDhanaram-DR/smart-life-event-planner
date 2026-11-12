@@ -12,6 +12,8 @@ import {
   approveAccountRequest,
   rejectAccountRequest,
   createDirectAccount,
+  resetUserPassword,
+  forgotPasswordReset,
   demoLogin,
   getMongoStatus,
 } from '../controllers/userController.js';
@@ -27,6 +29,7 @@ const router = express.Router();
 // Public routes
 router.post('/register', registerUser);
 router.post('/login', loginUser);
+router.post('/forgot-password', forgotPasswordReset);
 router.post('/request-account', requestAccount);
 router.post('/demo-login', demoLogin);
 router.get('/mongo-status', getMongoStatus);
@@ -44,6 +47,7 @@ router.put('/profile', authMiddleware, updateUserProfile);
 // Plan Event & Admin Allocation routes
 router.get('/', authMiddleware, plannerOrAdminMiddleware, getUsers);
 router.put('/:id/role', authMiddleware, plannerOrAdminMiddleware, allocateUserRole);
+router.put('/:id/password', authMiddleware, plannerOrAdminMiddleware, resetUserPassword);
 
 // Admin-only deletion route
 router.delete('/:id', authMiddleware, adminMiddleware, deleteUser);
