@@ -133,37 +133,77 @@ const getUserProfile = async (req, res) => {
   }
 };
 
-// @desc    Update user profile
+// @desc    Update user profile (username / password / preferences)
 // @route   PUT /api/users/profile
 // @access  Private
 const updateUserProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.id).select('+password');
 
-    if (user) {
-      user.name = req.body.name || user.name;
-      user.email = req.body.email || user.email;
-      user.avatar = req.body.avatar || user.avatar;
-      user.preferences = req.body.preferences || user.preferences;
-
-      if (req.body.password) {
-        user.password = req.body.password;
-      }
-
-      const updatedUser = await user.save();
-
-      res.json({
-        _id: updatedUser._id,
-        name: updatedUser.name,
-        email: updatedUser.email,
-        role: updatedUser.role,
-        avatar: updatedUser.avatar,
-        preferences: updatedUser.preferences,
-        token: generateToken(updatedUser._id, updatedUser.role),
-      });
-    } else {
-      res.status(404).json({ message: 'User not found' });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
     }
+
+    if (req.body.name !== undefined) {
+      const trimmedName = String(req.body.name).trim();
+      if (!trimmedName) {
+        return res.status(400).json({ message: 'Username / display name cannot be empty' });
+      }
+      user.name = trimmedName;
+    }
+
+    if (req.body.email !== undefined) {
+      const cleanEmail = String(req.body.email).trim().toLowerCase();
+      if (!cleanEmail) {
+        return res.status(400).json({ message: 'Email cannot be empty' });
+      }
+      if (cleanEmail !== user.email) {
+        const existingEmailUser = await User.findOne({ email: cleanEmail });
+        if (existingEmailUser) {
+          return res.status(400).json({ message: 'An account with this email already exists' });
+        }
+        user.email = cleanEmail;
+      }
+    }
+
+    if (req.body.organization !== undefined) {
+      user.organization = String(req.body.organization).trim();
+    }
+
+    if (req.body.avatar !== undefined) {
+      user.avatar = req.body.avatar;
+    }
+
+    if (req.body.preferences !== undefined) {
+      user.preferences = req.body.preferences;
+    }
+
+    if (req.body.password) {
+      const nextPassword = String(req.body.password).trim();
+      if (nextPassword.length < 6) {
+        return res.status(400).json({ message: 'Password must be at least 6 characters' });
+      }
+      if (req.body.currentPassword) {
+        const isCurrentValid = await user.matchPassword(String(req.body.currentPassword));
+        if (!isCurrentValid) {
+          return res.status(401).json({ message: 'Current password is incorrect' });
+        }
+      }
+      user.password = nextPassword;
+    }
+
+    const updatedUser = await user.save();
+
+    res.json({
+      _id: updatedUser._id,
+      name: updatedUser.name,
+      email: updatedUser.email,
+      role: updatedUser.role,
+      organization: updatedUser.organization || '',
+      avatar: updatedUser.avatar,
+      preferences: updatedUser.preferences,
+      token: generateToken(updatedUser._id, updatedUser.role),
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

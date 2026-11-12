@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import API_URL from '../config';
 import { useAuth } from '../context/AuthContext';
+import HeaderActions from '../components/HeaderActions';
 import { 
   Shield, Users, UserCheck, Trash2, ArrowLeft, RefreshCw, 
   CheckCircle, AlertTriangle, Search, Lock
@@ -114,7 +115,8 @@ const AdminPanel = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center flex-wrap gap-3">
+            <HeaderActions />
             <button
               onClick={fetchUsers}
               className="px-4 py-2.5 bg-gray-900 border border-gray-700 rounded-xl hover:bg-gray-800 transition-all text-sm font-semibold flex items-center gap-2"

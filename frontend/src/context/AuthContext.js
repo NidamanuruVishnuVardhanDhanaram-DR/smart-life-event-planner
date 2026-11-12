@@ -362,19 +362,58 @@ export const AuthProvider = ({ children }) => {
 
   const updateProfile = async (userData) => {
     try {
-      const res = await axios.put(`${API_URL}/api/users/profile`, userData, { timeout: REQUEST_TIMEOUT_MS });
-      setUser(res.data);
-      localStorage.setItem('user', JSON.stringify(res.data));
-      localStorage.setItem('currentUser', JSON.stringify(res.data));
-      return { success: true, user: res.data };
+      const payload = {};
+      if (userData.name !== undefined) payload.name = String(userData.name).trim();
+      if (userData.organization !== undefined) payload.organization = String(userData.organization).trim();
+      if (userData.avatar !== undefined) payload.avatar = userData.avatar;
+      if (userData.preferences !== undefined) payload.preferences = userData.preferences;
+      if (userData.password) payload.password = userData.password;
+      if (userData.currentPassword) payload.currentPassword = userData.currentPassword;
+
+      const res = await axios.put(`${API_URL}/api/users/profile`, payload, { timeout: REQUEST_TIMEOUT_MS });
+      const { token: updatedToken, ...updatedProfile } = res.data;
+      if (updatedToken) {
+        localStorage.setItem('token', updatedToken);
+        localStorage.setItem('authToken', updatedToken);
+        axios.defaults.headers.common['Authorization'] = `Bearer ${updatedToken}`;
+        setToken(updatedToken);
+      }
+      setUser(updatedProfile);
+      localStorage.setItem('user', JSON.stringify(updatedProfile));
+      localStorage.setItem('currentUser', JSON.stringify(updatedProfile));
+      window.dispatchEvent(new Event('userRoleUpdated'));
+      return { success: true, user: updatedProfile, message: 'Profile settings updated successfully!' };
     } catch (error) {
-      // Offline fallback: update local user object
+      const isNetworkOrOffline =
+        error.code === 'ERR_NETWORK' ||
+        error.code === 'ECONNABORTED' ||
+        !error.response ||
+        error.response.status >= 500;
+
+      if (!isNetworkOrOffline) {
+        return {
+          success: false,
+          message: error.response?.data?.message || 'Failed to update settings. Please verify your inputs.',
+        };
+      }
+
+      // Offline fallback: update local user object and demoUsers
       const current = user || {};
-      const updated = { ...current, ...userData };
+      const { password, currentPassword, ...safeChanges } = userData;
+      const updated = { ...current, ...safeChanges };
       setUser(updated);
       localStorage.setItem('user', JSON.stringify(updated));
       localStorage.setItem('currentUser', JSON.stringify(updated));
-      return { success: true, user: updated };
+      try {
+        const demoUsers = JSON.parse(localStorage.getItem('demoUsers') || '[]');
+        const idx = demoUsers.findIndex((u) => u.email?.toLowerCase() === updated.email?.toLowerCase());
+        if (idx >= 0) {
+          demoUsers[idx] = { ...demoUsers[idx], ...safeChanges, ...(password ? { password } : {}) };
+          localStorage.setItem('demoUsers', JSON.stringify(demoUsers));
+        }
+      } catch {}
+      window.dispatchEvent(new Event('userRoleUpdated'));
+      return { success: true, user: updated, isOffline: true, message: 'Settings saved locally (offline mode).' };
     }
   };
 

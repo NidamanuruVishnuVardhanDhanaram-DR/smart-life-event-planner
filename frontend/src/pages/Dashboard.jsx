@@ -4,6 +4,7 @@ import API_URL from '../config';
 import { initializeDefaultData } from '../services/dataService';
 import EventDebugger from '../components/EventDebugger';
 import AccountAllocation from '../components/AccountAllocation';
+import HeaderActions from '../components/HeaderActions';
 import { useAuth } from '../context/AuthContext';
 import EventForm from '../components/EventForm';
 import WeatherWidget from '../components/WeatherWidget';
@@ -14,7 +15,7 @@ import VenueBooking from '../components/VenueBooking';
 import BookingHistory from '../components/BookingHistory';
 import { 
   LayoutDashboard, CalendarPlus, Building2, Brain, BarChart3, 
-  CalendarDays, LogOut, User, Bell, Settings, Search,
+  CalendarDays, LogOut, User, Search,
   Sparkles, TrendingUp, Clock, MapPin, ChevronRight, X, Filter, XCircle,
   ClipboardList, UserCheck, Shield, Award, Lock
 } from 'lucide-react';
@@ -42,11 +43,18 @@ const Dashboard = () => {
       try {
         const stored = JSON.parse(localStorage.getItem('user') || '{}');
         if (stored?.role) setActiveRoleState(stored.role);
+        if (stored?.name || stored?.username) setUserName(stored.name || stored.username);
       } catch {}
     };
     window.addEventListener('userRoleUpdated', handleRoleUpdate);
     return () => window.removeEventListener('userRoleUpdated', handleRoleUpdate);
   }, []);
+
+  useEffect(() => {
+    if (user?.name || user?.username) {
+      setUserName(user.name || user.username);
+    }
+  }, [user]);
   const [activeTab, setActiveTab] = useState('overview');
   const [events, setEvents] = useState([]);
   const [venueBookings, setVenueBookings] = useState([]);
@@ -646,7 +654,7 @@ const Dashboard = () => {
 
       {/* Header - High-Gloss Specular Glass with Distinct Role Badge & Fast Search */}
       <header className="relative z-20 bg-gradient-to-b from-white/[0.08] via-transparent to-transparent bg-[#090e1c]/80 backdrop-blur-2xl border-b border-white/10 border-t border-t-white/20 sticky top-0 shadow-[0_10px_35px_rgba(0,0,0,0.5)]">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4 flex justify-between items-center gap-2">
           <div className="flex items-center space-x-4">
             {/* Mobile Menu Button */}
             <button 
@@ -854,14 +862,18 @@ const Dashboard = () => {
               )}
             </div>
 
-            {/* Notifications */}
-            <button className="relative p-2 hover:bg-gray-800 rounded-xl text-gray-400 hover:text-white transition-all">
-              <Bell size={20} />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-            </button>
+            {/* Notifications & Account Settings (Username / Password) */}
+            <HeaderActions
+              events={events}
+              venueBookings={venueBookings}
+              onNavigateTab={(tabId) => {
+                setActiveTab(tabId);
+                setSidebarOpen(false);
+              }}
+            />
 
             {/* User Info */}
-            <div className="flex items-center space-x-3 pl-4 border-l border-gray-700/80">
+            <div className="flex items-center space-x-2 sm:space-x-3 pl-2 sm:pl-4 border-l border-gray-700/80">
               <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md shadow-purple-500/20 ring-2 ring-purple-500/30">
                 {userName.charAt(0).toUpperCase()}
               </div>
