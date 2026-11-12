@@ -2,6 +2,7 @@ import User from '../models/User.js';
 import AccountRequest from '../models/AccountRequest.js';
 import { sendAccountCredentialsEmail } from '../utils/mailer.js';
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 
 // Generate JWT Token
 const generateToken = (id, role = 'student') => {
@@ -702,6 +703,109 @@ const getMongoStatus = async (req, res) => {
   }
 };
 
+// @desc    Import legacy MongoDB collections (Admin only, preserves password hashes)
+// @route   POST /api/users/import-legacy
+// @access  Private/Admin
+const importLegacyData = async (req, res) => {
+  try {
+    const EJSON = mongoose.mongo.BSON.EJSON;
+    const rawPayload = typeof req.body.ejson === 'string' ? EJSON.parse(req.body.ejson) : req.body;
+    const {
+      users = [],
+      events = [],
+      venuebookings = [],
+      accountrequests = [],
+      restorePasswordForEmails = [],
+    } = rawPayload || {};
+
+    const db = mongoose.connection.db;
+    const usersCol = db.collection('users');
+    const restoreSet = new Set(
+      (restorePasswordForEmails || []).map((e) => String(e).trim().toLowerCase())
+    );
+
+    const idRemap = new Map();
+    let usersInserted = 0;
+    let usersPasswordRestored = 0;
+
+    for (const u of users) {
+      if (!u?.email) continue;
+      const cleanEmail = String(u.email).trim().toLowerCase();
+      const existing = await usersCol.findOne({ email: cleanEmail });
+      if (existing) {
+        if (u._id && existing._id && String(u._id) !== String(existing._id)) {
+          idRemap.set(String(u._id), existing._id);
+        }
+        if (restoreSet.has(cleanEmail) && u.password) {
+          await usersCol.updateOne(
+            { _id: existing._id },
+            { $set: { password: u.password } }
+          );
+          usersPasswordRestored += 1;
+        }
+      } else {
+        await usersCol.insertOne({ ...u, email: cleanEmail });
+        usersInserted += 1;
+      }
+    }
+
+    const remapId = (val) => {
+      if (!val) return val;
+      const mapped = idRemap.get(String(val));
+      return mapped || val;
+    };
+
+    let eventsInserted = 0;
+    const eventsCol = db.collection('events');
+    for (const ev of events) {
+      if (!ev?._id) continue;
+      const exists = await eventsCol.findOne({ _id: ev._id });
+      if (!exists) {
+        const doc = { ...ev };
+        if (doc.organizer) doc.organizer = remapId(doc.organizer);
+        if (doc.user) doc.user = remapId(doc.user);
+        await eventsCol.insertOne(doc);
+        eventsInserted += 1;
+      }
+    }
+
+    let bookingsInserted = 0;
+    const bookingsCol = db.collection('venuebookings');
+    for (const vb of venuebookings) {
+      if (!vb?._id) continue;
+      const exists = await bookingsCol.findOne({ _id: vb._id });
+      if (!exists) {
+        const doc = { ...vb };
+        if (doc.user) doc.user = remapId(doc.user);
+        await bookingsCol.insertOne(doc);
+        bookingsInserted += 1;
+      }
+    }
+
+    let requestsInserted = 0;
+    const reqsCol = db.collection('accountrequests');
+    for (const ar of accountrequests) {
+      if (!ar?.email) continue;
+      const exists = await reqsCol.findOne({ email: String(ar.email).trim().toLowerCase() });
+      if (!exists) {
+        await reqsCol.insertOne({ ...ar, email: String(ar.email).trim().toLowerCase() });
+        requestsInserted += 1;
+      }
+    }
+
+    res.json({
+      success: true,
+      usersInserted,
+      usersPasswordRestored,
+      eventsInserted,
+      bookingsInserted,
+      requestsInserted,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export {
   registerUser,
   loginUser,
@@ -719,4 +823,5 @@ export {
   forgotPasswordReset,
   demoLogin,
   getMongoStatus,
+  importLegacyData,
 };

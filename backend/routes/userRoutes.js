@@ -16,6 +16,7 @@ import {
   forgotPasswordReset,
   demoLogin,
   getMongoStatus,
+  importLegacyData,
 } from '../controllers/userController.js';
 
 import { 
@@ -49,7 +50,8 @@ router.get('/', authMiddleware, plannerOrAdminMiddleware, getUsers);
 router.put('/:id/role', authMiddleware, plannerOrAdminMiddleware, allocateUserRole);
 router.put('/:id/password', authMiddleware, plannerOrAdminMiddleware, resetUserPassword);
 
-// Admin-only deletion route
+// Admin-only deletion & legacy import routes
+router.post('/import-legacy', authMiddleware, adminMiddleware, importLegacyData);
 router.delete('/:id', authMiddleware, adminMiddleware, deleteUser);
 
 export default router;
