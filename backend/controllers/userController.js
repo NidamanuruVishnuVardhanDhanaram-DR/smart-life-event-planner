@@ -594,6 +594,28 @@ const resetUserPassword = async (req, res) => {
 const normalizeNameForCheck = (value) =>
   String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
 
+const SEEDED_DEMO_EMAILS = new Set([
+  'student@eventplanner.com',
+  'organizer@eventplanner.com',
+  'pro@eventplanner.com',
+  'admin@eventplanner.com',
+  'demo@eventplanner.com',
+  'demo.student@eventplanner.com',
+  'demo.planner@eventplanner.com',
+  'demo.pro@eventplanner.com',
+]);
+
+const namesReasonablyMatch = (storedName, providedName) => {
+  const a = normalizeNameForCheck(storedName);
+  const b = normalizeNameForCheck(providedName);
+  if (!a || !b) return false;
+  if (a === b) return true;
+  if (a.includes(b) || b.includes(a)) return true;
+  const aWords = new Set(a.split(' ').filter((w) => w.length >= 2));
+  const bWords = b.split(' ').filter((w) => w.length >= 2);
+  return bWords.some((w) => aWords.has(w));
+};
+
 // @desc    Self-service password reset for registered / approved users
 // @route   POST /api/users/forgot-password
 // @access  Public
@@ -611,9 +633,9 @@ const forgotPasswordReset = async (req, res) => {
       return res.status(400).json({ message: 'New password must be at least 6 characters' });
     }
 
-    if (cleanEmail.endsWith('@eventplanner.com')) {
+    if (SEEDED_DEMO_EMAILS.has(cleanEmail)) {
       return res.status(403).json({
-        message: 'Built-in demo and admin accounts cannot be changed via self-service.',
+        message: 'Built-in demo accounts cannot be changed via self-service.',
       });
     }
 
@@ -624,15 +646,9 @@ const forgotPasswordReset = async (req, res) => {
       });
     }
 
-    if (user.role === 'admin') {
-      return res.status(403).json({
-        message: 'Administrator accounts must be reset by another administrator.',
-      });
-    }
-
-    if (normalizeNameForCheck(user.name) !== normalizeNameForCheck(name)) {
+    if (!namesReasonablyMatch(user.name, name)) {
       return res.status(401).json({
-        message: 'The full name provided does not match the registered name on this account.',
+        message: 'The name provided does not match the registered name on this account.',
       });
     }
 
@@ -647,7 +663,7 @@ const forgotPasswordReset = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Password updated successfully! You can now sign in on mobile or desktop.',
+      message: 'Password updated successfully! You can now sign in on mobile or laptop.',
       email: user.email,
     });
   } catch (error) {

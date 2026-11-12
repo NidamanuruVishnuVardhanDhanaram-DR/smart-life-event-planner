@@ -407,17 +407,32 @@ const Login = () => {
                     {isLocked ? '🔒 Account Locked' : 'Authentication Error'}
                   </p>
                   <p className="text-sm opacity-90 mt-1">{error}</p>
+                  {!isLocked && (
+                    <Link
+                      to="/forgot-password"
+                      className="inline-block mt-1.5 text-xs font-semibold text-blue-200 hover:text-white underline"
+                    >
+                      Forgot or need to reset this account&apos;s password? →
+                    </Link>
+                  )}
                   {isLocked && (
-                    <div className="mt-2">
+                    <div className="mt-2 space-y-2">
                       <div className="w-full bg-red-900/40 rounded-full h-2 overflow-hidden">
                         <div 
                           className="bg-red-400 h-full transition-all duration-1000 ease-linear"
                           style={{ width: `${(lockTimer / 60) * 100}%` }}
                         />
                       </div>
-                      <p className="text-xs mt-1 text-red-300">
-                        Reseting in {formatLockTimer(lockTimer)}
-                      </p>
+                      <div className="flex items-center justify-between text-xs text-red-300">
+                        <span>Resetting in {formatLockTimer(lockTimer)}</span>
+                        <button
+                          type="button"
+                          onClick={() => { setIsLocked(false); setLockTimer(0); setAttempts(0); setError(''); }}
+                          className="text-blue-200 hover:text-white underline font-semibold"
+                        >
+                          Unlock &amp; Try Again
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
